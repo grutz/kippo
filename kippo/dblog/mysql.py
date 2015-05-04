@@ -20,7 +20,7 @@ class ReconnectingConnectionPool(adbapi.ConnectionPool):
         try:
             return adbapi.ConnectionPool._runInteraction(
                 self, interaction, *args, **kw)
-        except MySQLdb.OperationalError, e:
+        except MySQLdb.OperationalError as e:
             if e[0] not in (2006, 2013):
                 raise
             log.msg("RCP: got error %s, retrying operation" %(e))
@@ -46,7 +46,7 @@ class DBLogger(dblog.DBLogger):
             cp_max = 1)
 
     def sqlerror(self, error):
-        print 'SQL Error:', error.value
+        log.msg( 'SQL Error:', error.value )
 
     def simpleQuery(self, sql, args):
         """ Just run a deferred sql query, only care about errors """
@@ -54,7 +54,7 @@ class DBLogger(dblog.DBLogger):
         d.addErrback(self.sqlerror)
 
     def createSession(self, peerIP, peerPort, hostIP, hostPort):
-        sid = uuid.uuid1().hex
+        sid = uuid.uuid4().hex
         self.createSessionWhenever(sid, peerIP, hostIP)
         return sid
 
@@ -142,8 +142,8 @@ class DBLogger(dblog.DBLogger):
 
     def handleFileDownload(self, session, args):
         self.simpleQuery('INSERT INTO `downloads`' + \
-            ' (`session`, `timestamp`, `url`, `outfile`)' + \
+            ' (`session`, `timestamp`, `url`, `outfile`, `shasum`)' + \
             ' VALUES (%s, FROM_UNIXTIME(%s), %s, %s)',
-            (session, self.nowUnix(), args['url'], args['outfile']))
+            (session, self.nowUnix(), args['url'], args['outfile'], args['shasum']))
 
 # vim: set sw=4 et:
